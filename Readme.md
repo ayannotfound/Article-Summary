@@ -8,19 +8,17 @@ A Python-based desktop application that fetches and summarizes news articles fro
 
 ## 📌 Features
 
-- 🔗 Enter any article/news URL
-- 🧠 Summarize articles using `newspaper3k`
-- 🖥️ Minimalist and responsive Tkinter GUI
-- 📋 Copy summary button
-- ⚡ Lightweight and easy to run
+- 🔗 Enter any news/article URL
+- 🧠 Automatically extracts and summarizes articles using `newspaper3k` + transformers
+- 🖥️ Clean and responsive Tkinter interface
+- 📋 One-click summary copy feature
+- ⚡ Lightweight, fast, and beginner-friendly
 
 ---
 
 ## 📸 Screenshot
 
 ![App Screenshot](assets/screenshot.png)
-
-> *(Make sure to add a screenshot named `screenshot.png` in the `assets/` folder, or update the path.)*
 
 ---
 
@@ -46,10 +44,11 @@ python main.py
 
 ```plaintext
 Article-Summary/
-├── main.py               # Main Tkinter app
+├── app.py                # Main Tkinter app
+├── summarize.py          # Scraping + Summarizing logic
 ├── requirements.txt      # Required Python packages
 ├── assets/
-│   └── screenshot.png    # App screenshot (optional)
+│   └── screenshot.png    # App screenshot
 ```
 
 ---
@@ -59,6 +58,9 @@ Article-Summary/
 - [Python](https://www.python.org/)
 - [Tkinter](https://docs.python.org/3/library/tkinter.html) – GUI library
 - [newspaper3k](https://github.com/codelucas/newspaper) – Article extraction and summarization
+- [transformers](https://huggingface.co/docs/transformers/en/index) – For article summarization using pretrained NLP models
+
+
 
 ---
 
@@ -66,18 +68,8 @@ Article-Summary/
 
 - How to build desktop GUIs in Python using Tkinter
 - How to use NLP for summarizing content
+- How to use transformers for summarizing context
 - Integrating scraping and GUI logic in one project
-
----
-
-## 🏗️ Future Improvements
-
-- 🌍 Multilingual summarization support
-- 💾 Export summary as `.txt` file
-- 🧹 Clear/reset button
-- 📡 Support for live news scraping feeds
-
----
 
 ## 🤝 Contributing
 
@@ -89,12 +81,13 @@ If you find a bug or have a suggestion, feel free to [open an issue](https://git
 
 ## 📜 License
 
-This project is licensed under the [MIT License](LICENSE).
+This project is licensed under the MIT License.
 
 ---
 
 ## 📫 Contact
 
 Created by [@ayannotfound](https://github.com/ayannotfound)
+Check out my other project 👉 [Weather Web App](https://github.com/ayannotfound/Weather)
 
 > Feel free to fork the repo, leave a ⭐, or reach out with feedback!

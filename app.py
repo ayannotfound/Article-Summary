@@ -10,11 +10,10 @@ from ttkthemes import ThemedTk
 from dotenv import load_dotenv
 load_dotenv()
 
-# Import functions from the scrape.py file
+# Import functions from the summarize.py file
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from scrape import process_article
+from summarize import process_article
 
-# Material Design inspired colors
 COLORS = {
     "background": "#FAFAFA",
     "card": "#FFFFFF",
