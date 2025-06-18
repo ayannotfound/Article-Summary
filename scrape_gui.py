@@ -7,6 +7,8 @@ from PIL import Image, ImageTk
 import webbrowser
 from tkinter import messagebox
 from ttkthemes import ThemedTk
+from dotenv import load_dotenv
+load_dotenv()
 
 # Import functions from the scrape.py file
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -124,19 +126,17 @@ class MaterialCard(tk.Frame):
 class NewsScraperApp(ThemedTk):
     """Main application window"""
     def __init__(self):
-        super().__init__(theme="arc")  # 'arc' is a modern theme, you can try others like 'breeze', 'plastik', etc.
+        super().__init__(theme="arc")  
         
         self.title("News Article Scraper")
         self.geometry("900x700")
-        self.minsize(600, 400)  # Set a minimum window size
+        self.minsize(600, 400)  
         self.configure(background=COLORS['background'])
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
         
-        # Create the UI
         self._create_widgets()
         
-        # Center the window
         self.update_idletasks()
         width = self.winfo_width()
         height = self.winfo_height()
@@ -144,8 +144,13 @@ class NewsScraperApp(ThemedTk):
         y = (self.winfo_screenheight() // 2) - (height // 2)
         self.geometry(f'{width}x{height}+{x}+{y}')
         
-        # Bind resize event to update wraplengths
         self.bind('<Configure>', self._on_resize)
+        
+        self.api_key = os.getenv('HUGGINGFACE_API_KEY')
+        if not self.api_key:
+            messagebox.showerror("API Key Error", "HUGGINGFACE_API_KEY not set in .env or environment.")
+            self.destroy()
+            return
     
     def _create_widgets(self):
         """Create all the UI widgets using ttk for full theme support"""
@@ -180,7 +185,7 @@ class NewsScraperApp(ThemedTk):
         self.url_entry.pack(side='left', fill='x', expand=True, padx=(0, 8))
         self.scrape_button = ttk.Button(
             input_row,
-            text="Scrape Article",
+            text="Summarize",
             command=self._on_scrape
         )
         self.scrape_button.pack(side='right')
@@ -267,12 +272,18 @@ class NewsScraperApp(ThemedTk):
             command=self._show_full_article
         )
         self.view_full_button.grid(row=0, column=0, sticky='e', padx=(0, 8))
+        self.copy_summary_button = ttk.Button(
+            self.button_frame,
+            text="Copy Summary",
+            command=self._copy_summary
+        )
+        self.copy_summary_button.grid(row=0, column=1, sticky='e', padx=(0, 8))
         self.open_browser_button = ttk.Button(
             self.button_frame,
             text="Open in Browser",
             command=self._open_in_browser
         )
-        self.open_browser_button.grid(row=0, column=1, sticky='e')
+        self.open_browser_button.grid(row=0, column=2, sticky='e')
 
         # Initially hide results
         self.title_card.pack_forget()
@@ -307,12 +318,12 @@ class NewsScraperApp(ThemedTk):
     def _scrape_thread(self, url):
         """Run the scraping process in a background thread"""
         try:
-            self.article_data = process_article(url)
-            
+            self.article_data = process_article(url, self.api_key)
             # Update UI in the main thread
             self.after(0, self._update_results)
         except Exception as e:
-            self.after(0, lambda: self._show_error(str(e)))
+            error_message = str(e)
+            self.after(0, lambda: self._show_error(error_message))
     
     def _update_results(self):
         """Update the UI with the scraped results"""
@@ -398,6 +409,14 @@ class NewsScraperApp(ThemedTk):
         """Open the current article URL in the default web browser"""
         if self.current_url:
             webbrowser.open(self.current_url)
+    
+    def _copy_summary(self):
+        """Copy the summary text to the clipboard"""
+        summary = self.summary_text.get(1.0, tk.END).strip()
+        self.clipboard_clear()
+        self.clipboard_append(summary)
+        self.update()  # Keeps clipboard after window closes
+        messagebox.showinfo("Copied!", "Summary copied to clipboard.")
     
     def _on_resize(self, event):
         """Dynamically adjust wraplengths for labels on resize"""

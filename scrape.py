@@ -1,51 +1,38 @@
 import requests
-from bs4 import BeautifulSoup
-import nltk
-from newspaper import Article
 import argparse
 import sys
 import os
+from dotenv import load_dotenv
+load_dotenv()
 
-# Ensure NLTK data is available
-try:
-    nltk.data.find('tokenizers/punkt')
-except LookupError:
-    nltk.download('punkt')
+HUGGINGFACE_API_URL = "https://api-inference.huggingface.co/models/facebook/bart-large-cnn"
 
-
-def extract_article(url):
-    """Extract article content using newspaper3k."""
-    try:
-        article = Article(url)
-        article.download()
-        article.parse()
-        article.nlp()
-        base_summary = article.summary
-        if article.text:
-            sentences = nltk.sent_tokenize(article.text)
-            summary_sentences = nltk.sent_tokenize(base_summary)
-            summary_sentence_set = set(summary_sentences)
-            extended_summary = summary_sentences.copy()
-            for sentence in sentences:
-                if sentence not in summary_sentence_set and len(extended_summary) < 10:
-                    extended_summary.append(sentence)
-                    summary_sentence_set.add(sentence)
-            extended_summary_text = ' '.join(extended_summary)
-        else:
-            extended_summary_text = base_summary
-        return {
-            'title': article.title,
-            'text': article.text,
-            'summary': extended_summary_text,
-            'keywords': article.keywords
+def summarize_text(text, api_key, max_chars=2000):
+    safe_text = text[:max_chars]
+    headers = {"Authorization": f"Bearer {api_key}"}
+    payload = {
+        "inputs": safe_text,
+        "parameters": {
+            "min_length": 120,  
+            "max_length": 300   
         }
-    except Exception as e:
-        print(f"Error extracting article: {e}")
+    }
+    response = requests.post(HUGGINGFACE_API_URL, headers=headers, json=payload)
+    if response.status_code == 200:
+        result = response.json()
+        if isinstance(result, list) and 'summary_text' in result[0]:
+            return result[0]['summary_text']
+        elif isinstance(result, dict) and 'error' in result:
+            print(f"Hugging Face API error: {result['error']}")
+            return None
+    else:
+        print(f"Failed to summarize: {response.status_code} {response.text}")
         return None
 
-def fallback_scrape(url):
-    """Fallback method to scrape article content if newspaper3k fails."""
+def extract_article_text(url):
+    """Extract article content using requests and BeautifulSoup."""
     try:
+        from bs4 import BeautifulSoup
         headers = {'User-Agent': 'Mozilla/5.0'}
         response = requests.get(url, headers=headers)
         response.raise_for_status()
@@ -65,24 +52,30 @@ def fallback_scrape(url):
         if not content:
             paragraphs = soup.find_all('p')
             content = '\n'.join([p.get_text().strip() for p in paragraphs])
-        sentences = nltk.sent_tokenize(content)
-        summary = ' '.join(sentences[:min(7, len(sentences))])
         return {
             'title': title,
-            'text': content,
-            'summary': summary,
-            'keywords': []
+            'text': content
         }
     except Exception as e:
-        print(f"Error with fallback scrape: {e}")
+        print(f"Error extracting article: {e}")
         return None
 
-def process_article(url):
-    """Process an article URL - extract content and summary."""
-    article_data = extract_article(url)
+def process_article(url, api_key=None):
+    """Process an article URL - extract content and summarize using Hugging Face API."""
+    if api_key is None:
+        api_key = os.getenv('HUGGINGFACE_API_KEY')
+    if not api_key:
+        print("HUGGINGFACE_API_KEY environment variable not set.")
+        return None
+    article_data = extract_article_text(url)
     if not article_data:
-        print("Primary extraction failed, trying fallback method...")
-        article_data = fallback_scrape(url)
+        return None
+    summary = summarize_text(article_data['text'], api_key)
+    if not summary:
+        print("Summarization failed.")
+        return None
+    article_data['summary'] = summary
+    article_data['keywords'] = []
     return article_data
 
 def display_article(article_data):
@@ -97,11 +90,16 @@ def display_article(article_data):
     print(f"\n{'='*80}")
 
 def main():
-    parser = argparse.ArgumentParser(description='Scrape and summarize a news article.')
+    parser = argparse.ArgumentParser(description='Scrape and summarize a news article using Hugging Face API.')
     parser.add_argument('url', help='URL of the news article to scrape and summarize')
     parser.add_argument('--full', action='store_true', help='Display the full article text')
     args = parser.parse_args()
-    article_data = process_article(args.url)
+    load_dotenv()
+    api_key = os.getenv('HUGGINGFACE_API_KEY')
+    if not api_key:
+        print("HUGGINGFACE_API_KEY environment variable not set.")
+        sys.exit(1)
+    article_data = process_article(args.url, api_key)
     if article_data:
         display_article(article_data)
         if args.full:
